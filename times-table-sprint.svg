@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#13283d"/>
+<g font-family="system-ui,sans-serif" font-weight="800" fill="#eef3f7" fill-opacity=".1" font-size="40"><text x="20" y="60">3×4</text><text x="250" y="70">9×6</text><text x="300" y="250">7×7</text><text x="40" y="200">8×5</text></g>
+<text x="200" y="150" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="800" font-size="84" fill="#eef3f7">7 × 8</text>
+<circle cx="330" cy="200" r="34" fill="none" stroke="#e5b52e" stroke-width="6"/><path d="M330 200v-22M330 200l14 8" stroke="#e5b52e" stroke-width="6" stroke-linecap="round"/>
+<text x="28" y="270" font-family="system-ui,sans-serif" font-weight="800" font-size="30" fill="#e5b52e">Times Table Sprint</text></svg>

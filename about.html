@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>About · Road to Chill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<script src="config.js"></script>
+<script src="app.js"></script>
+</head>
+<body>
+<header id="site-header"></header>
+<main class="wrap"><article class="prose">
+<span class="label">About</span>
+<h1>One new game, every day</h1>
+<p><span data-site-name></span> publishes an original browser game every day: puzzles, number games, word games and quick learning challenges. Every game is designed in-house, plays instantly on a phone or computer, and needs no download or sign-up.</p>
+<h2>Why we make them</h2>
+<p>Short games are a good way to practise something real, like times tables, state capitals or logical thinking, without it feeling like homework. Each game takes a few minutes and teaches or sharpens one thing.</p>
+<h2>How the site is funded</h2>
+<p>The games are free. The site is supported by advertising shown around the games, never inside them.</p>
+<h2>Contact</h2>
+<p id="contact">Ideas for a game, a bug report, or a school that wants to use these in class? Write to us at <strong id="contact-email">the address in our footer</strong>.</p>
+</article></main>
+<footer id="site-footer"></footer>
+<script>App.chrome("about");if(App.S.contactEmail){document.getElementById("contact-email").textContent=App.S.contactEmail;}</script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slide 15</title>
+<style>
+  :root { --bg:#2a2140; --tile:#f2efe4; --ink:#2a2140; --accent:#e5b52e; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--tile); font: 16px/1.4 system-ui, "Segoe UI", sans-serif; display: grid; place-items: center; padding: 16px; }
+  .box { width: 100%; max-width: 400px; display: grid; gap: 14px; text-align: center; }
+  .hud { display: flex; justify-content: space-between; font: 700 14px ui-monospace, Menlo, monospace; letter-spacing: .06em; }
+  .board { position: relative; width: 100%; aspect-ratio: 1; background: rgba(0,0,0,.25); border-radius: 14px; padding: 6px; }
+  .tile { position: absolute; width: calc((100% - 12px) / 4 - 6px); height: calc((100% - 12px) / 4 - 6px);
+    display: grid; place-items: center; background: var(--tile); color: var(--ink); border-radius: 10px;
+    font: 800 clamp(22px, 8vw, 34px) system-ui, sans-serif; cursor: pointer; border: 0;
+    transition: left .12s ease, top .12s ease; touch-action: manipulation; }
+  .tile.home { background: var(--accent); }
+  button.primary { font: 800 18px system-ui, sans-serif; border: 0; border-radius: 999px; padding: 14px 22px; background: var(--accent); color: #1b1a10; cursor: pointer; }
+  .win { font: 800 28px system-ui, sans-serif; color: var(--accent); min-height: 1.3em; }
+  .muted { opacity: .75; font-size: 14px; }
+  @media (prefers-reduced-motion: reduce) { .tile { transition: none; } }
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="hud"><span>Moves <b id="m">0</b></span><span id="best"></span><span id="time">0:00</span></div>
+  <div class="board" id="board" aria-label="Sliding puzzle"></div>
+  <div class="win" id="win"></div>
+  <button class="primary" type="button" id="shuffle">New puzzle</button>
+  <div class="muted">Tap a tile next to the gap to slide it. Gold tiles are in the right place.</div>
+</div>
+<script>
+const N = 4, board = document.getElementById("board");
+let cells, moves, t0, clock, done;
+const store = { get() { try { return +localStorage.getItem("s15-best") || 0; } catch (e) { return 0; } }, set(v) { try { localStorage.setItem("s15-best", v); } catch (e) {} } };
+
+function neighbours(i) { const r = i / N | 0, c = i % N, out = []; if (r) out.push(i - N); if (r < N - 1) out.push(i + N); if (c) out.push(i - 1); if (c < N - 1) out.push(i + 1); return out; }
+
+function newGame() {
+  cells = [...Array(N * N - 1).keys()].map(i => i + 1).concat(0);
+  let gap = N * N - 1, prev = -1;
+  for (let k = 0; k < 220; k++) { // random legal moves keep it solvable
+    const opts = neighbours(gap).filter(x => x !== prev);
+    const pick = opts[Math.random() * opts.length | 0];
+    [cells[gap], cells[pick]] = [cells[pick], cells[gap]]; prev = gap; gap = pick;
+  }
+  moves = 0; done = false; t0 = null; clearInterval(clock);
+  document.getElementById("time").textContent = "0:00";
+  document.getElementById("win").textContent = "";
+  const b = store.get(); document.getElementById("best").textContent = b ? "Best " + b : "";
+  draw();
+}
+
+function draw() {
+  board.innerHTML = "";
+  cells.forEach((v, i) => {
+    if (!v) return;
+    const el = document.createElement("button");
+    el.type = "button"; el.className = "tile" + (v === i + 1 ? " home" : ""); el.textContent = v;
+    el.style.left = `calc(6px + ${i % N} * (100% - 12px) / 4 + 3px)`;
+    el.style.top = `calc(6px + ${i / N | 0} * (100% - 12px) / 4 + 3px)`;
+    el.onclick = () => move(i);
+    board.appendChild(el);
+  });
+  document.getElementById("m").textContent = moves;
+}
+
+function move(i) {
+  if (done) return;
+  const gap = cells.indexOf(0);
+  if (!neighbours(gap).includes(i)) return;
+  if (!t0) { t0 = Date.now(); clock = setInterval(() => { const s = (Date.now() - t0) / 1000 | 0; document.getElementById("time").textContent = (s / 60 | 0) + ":" + String(s % 60).padStart(2, "0"); }, 500); }
+  [cells[gap], cells[i]] = [cells[i], cells[gap]]; moves++; draw();
+  if (cells.every((v, k) => v === (k + 1) % (N * N))) {
+    done = true; clearInterval(clock);
+    const b = store.get(); if (!b || moves < b) store.set(moves);
+    document.getElementById("win").textContent = `Solved in ${moves} moves!`;
+  }
+}
+
+document.getElementById("shuffle").onclick = newGame;
+newGame();
+</script>
+</body>
+</html>

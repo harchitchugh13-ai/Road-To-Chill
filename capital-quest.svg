@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#1e3a31"/>
+<g fill="none" stroke="#f2efe4" stroke-opacity=".12"><path d="M0 60h400M0 120h400M0 180h400M0 240h400M80 0v300M160 0v300M240 0v300M320 0v300"/></g>
+<path d="M150 70l40-18 34 14 26 30 8 36-14 30 6 34-28 40-30 16-18-30-20-44-22-26 4-40z" fill="#f2efe4" fill-opacity=".14" stroke="#f2efe4" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="214" cy="150" r="16" fill="#e5b52e"/><circle cx="214" cy="150" r="6" fill="#1e3a31"/>
+<path d="M214 150l60-40" stroke="#e5b52e" stroke-width="3" stroke-dasharray="6 6"/>
+<rect x="268" y="88" width="102" height="34" rx="8" fill="#e5b52e"/><text x="319" y="111" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="800" font-size="16" fill="#1b1a10">Shillong?</text>
+<text x="28" y="270" font-family="system-ui,sans-serif" font-weight="800" font-size="34" fill="#f2efe4">Capital Quest</text></svg>

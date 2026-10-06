@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Road to Chill</title>
+<meta name="description" content="Road to Chill: a new original puzzle and learning game every day. Free to play in your browser, no download.">
+<!-- AdSense site verification: if AdSense asks for a meta tag, paste it on the next line -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</head>
+<body>
+<header id="site-header"></header>
+
+<div class="wrap ad-band"><div class="ad ad-top" data-slot="top"></div></div>
+
+<main class="wrap">
+  <section class="slate" id="today" aria-live="polite">
+    <div>
+      <span class="label">Today's stop on the road</span>
+      <h1 id="today-title">Loading…</h1>
+      <p id="today-desc"></p>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center">
+        <a class="btn" id="today-play" href="#all">Play now</a>
+        <span class="issue" id="today-issue"></span>
+      </div>
+    </div>
+    <div class="slate-art" id="today-art"></div>
+  </section>
+
+  <div class="section-head" id="all">
+    <div>
+      <span class="label">The archive</span>
+      <h2>Every daily game</h2>
+    </div>
+    <div class="filters" role="group" aria-label="Filter games">
+      <input class="search" id="q" type="search" placeholder="Search games" aria-label="Search games">
+    </div>
+  </div>
+  <div class="filters" id="cats" role="group" aria-label="Categories" style="margin-bottom:18px"></div>
+  <div class="grid" id="grid"></div>
+  <p class="empty" id="empty" hidden>No games match that search yet.</p>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script>
+(async function () {
+  const { S, listGames, chrome, esc, fmtDate, issue, thumbHTML, fillAds } = App;
+  document.title = S.name || document.title;
+  chrome("home");
+
+  let games = [];
+  try { games = await listGames(); }
+  catch (e) {
+    document.getElementById("today-title").textContent = "Couldn't load games";
+    document.getElementById("today-desc").textContent = "Check the Supabase URL and key in config.js, then reload. (" + e.message + ")";
+    return;
+  }
+
+  const today = games[0];
+  if (today) {
+    document.getElementById("today-title").textContent = today.title;
+    document.getElementById("today-desc").textContent = today.description || "";
+    document.getElementById("today-issue").textContent = issue(today.no) + " · " + fmtDate(today.publish_at);
+    document.getElementById("today-play").href = "play.html?g=" + encodeURIComponent(today.slug);
+    document.getElementById("today-art").innerHTML = thumbHTML(today);
+  } else {
+    document.getElementById("today-title").textContent = "The first game arrives soon";
+    document.getElementById("today-desc").textContent = "Open the admin page to upload your first game.";
+    document.getElementById("today-play").hidden = true;
+  }
+
+  // category chips
+  const cats = ["All", ...new Set(games.map((g) => g.category).filter(Boolean))];
+  let cat = "All", q = "";
+  const catsEl = document.getElementById("cats");
+  catsEl.innerHTML = cats.map((c) => `<button class="chip" type="button" aria-pressed="${c === "All"}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
+  catsEl.addEventListener("click", (e) => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    cat = b.dataset.c;
+    catsEl.querySelectorAll(".chip").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    render();
+  });
+  document.getElementById("q").addEventListener("input", (e) => { q = e.target.value.trim().toLowerCase(); render(); });
+
+  function render() {
+    const list = games.filter((g) =>
+      (cat === "All" || g.category === cat) &&
+      (!q || [g.title, g.description, g.category, ...(g.tags || [])].join(" ").toLowerCase().includes(q)));
+    const cards = list.map((g) => `
+      <a class="card" href="play.html?g=${encodeURIComponent(g.slug)}">
+        <div class="thumb">${thumbHTML(g)}<span class="no">${issue(g.no)}</span></div>
+        <div class="body">
+          <h3>${esc(g.title)}</h3>
+          <div class="meta"><span>${esc(g.category || "")}</span><span>${fmtDate(g.publish_at)}</span></div>
+        </div>
+      </a>`);
+    // an in-feed ad after every 6th card
+    for (let i = 6; i < cards.length; i += 7) cards.splice(i, 0, `<div class="card ad-card"><div class="ad ad-feed" data-slot="feed"></div></div>`);
+    if (list.length && list.length < 6) cards.push(`<div class="card ad-card"><div class="ad ad-feed" data-slot="feed"></div></div>`);
+    document.getElementById("grid").innerHTML = cards.join("");
+    document.getElementById("empty").hidden = list.length > 0;
+    fillAds(document.getElementById("grid"));
+  }
+  render();
+})();
+</script>
+</body>
+</html>

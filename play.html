@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Play · Road to Chill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</head>
+<body>
+<header id="site-header"></header>
+
+<div class="wrap ad-band"><div class="ad ad-top" data-slot="top"></div></div>
+
+<main class="wrap">
+  <div class="play-layout">
+    <div style="min-width:0">
+      <div class="stage" id="stage">
+        <div class="cover" id="cover">
+          <div>
+            <span class="label" id="cover-issue"></span>
+            <h1 id="cover-title">Loading…</h1>
+            <button class="btn" id="start" type="button" disabled>Play</button>
+          </div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn ghost small" id="restart" type="button" disabled>Restart</button>
+        <button class="btn ghost small" id="full" type="button" disabled>Full screen</button>
+        <button class="btn ghost small" id="share" type="button">Copy link</button>
+      </div>
+
+      <div class="ad-band"><div class="ad ad-below" data-slot="below"></div></div>
+
+      <article class="game-info" id="info"></article>
+
+      <div class="section-head"><div><span class="label">Keep going</span><h2>More daily games</h2></div></div>
+      <div class="grid" id="more"></div>
+    </div>
+    <aside class="sidebar"><div class="ad ad-side" data-slot="side" data-format="vertical"></div></aside>
+  </div>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script>
+(async function () {
+  const { S, getGame, listGames, countPlay, chrome, esc, fmtDate, issue, thumbHTML, toast } = App;
+  chrome("play");
+
+  // slug comes from ?g=slug (or #slug as a fallback)
+  const params = new URLSearchParams(location.search);
+  const slug = params.get("g") || decodeURIComponent(location.hash.slice(1));
+  const $ = (id) => document.getElementById(id);
+
+  let game = null;
+  try { game = slug ? await getGame(slug) : null; } catch (e) { console.error(e); }
+  if (!game) {
+    $("cover-title").textContent = "Game not found";
+    $("start").textContent = "Back to all games";
+    $("start").disabled = false;
+    $("start").onclick = () => (location.href = "index.html");
+    return;
+  }
+
+  document.title = game.title + " · " + (S.name || "");
+  $("cover-title").textContent = game.title;
+  $("cover-issue").textContent = [issue(game.no), game.category].filter(Boolean).join(" · ");
+  if (game.thumbnail_url) $("cover").style.backgroundImage = `url("${game.thumbnail_url.replace(/"/g, "%22")}")`;
+  $("info").innerHTML = `
+    <span class="label">${esc(issue(game.no))} · ${esc(fmtDate(game.publish_at))}</span>
+    <h2>${esc(game.title)}</h2>
+    <p style="margin:0">${esc(game.description || "")}</p>
+    <div class="tags">${(game.tags || []).map((t) => `<span class="tag">#${esc(t)}</span>`).join("")}</div>`;
+
+  let frame = null;
+  function load() {
+    frame && frame.remove();
+    frame = document.createElement("iframe");
+    frame.title = game.title;
+    frame.allow = "fullscreen; autoplay; gamepad";
+    frame.allowFullscreen = true;
+    if (game.html) {
+      // Uploaded single-file game: isolated from the site (no access to cookies or the admin login).
+      frame.setAttribute("sandbox", "allow-scripts allow-pointer-lock allow-popups");
+      frame.srcdoc = game.html;
+    } else if (game.external_url) {
+      // Game hosted elsewhere (itch.io, Netlify…): runs on its own domain.
+      frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-pointer-lock allow-popups allow-forms");
+      frame.src = game.external_url;
+    } else {
+      frame.setAttribute("sandbox", "allow-scripts allow-pointer-lock allow-popups");
+      frame.src = game.src;
+    }
+    $("stage").appendChild(frame);
+    frame.focus();
+  }
+
+  $("start").disabled = false;
+  $("start").onclick = () => {
+    $("cover").hidden = true;
+    load();
+    countPlay(game.slug);
+    $("restart").disabled = false;
+    $("full").disabled = false;
+  };
+  $("restart").onclick = () => load();
+  $("full").onclick = async () => {
+    try { await $("stage").requestFullscreen(); } catch (e) { toast("Full screen isn't available on this device"); }
+  };
+  $("share").onclick = async () => {
+    const url = location.origin + location.pathname + "?g=" + encodeURIComponent(game.slug);
+    try { await navigator.clipboard.writeText(url); toast("Link copied"); }
+    catch (e) { toast(url); }
+  };
+
+  try {
+    const others = (await listGames()).filter((g) => g.slug !== game.slug).slice(0, 4);
+    $("more").innerHTML = others.map((g) => `
+      <a class="card" href="play.html?g=${encodeURIComponent(g.slug)}">
+        <div class="thumb">${thumbHTML(g)}<span class="no">${issue(g.no)}</span></div>
+        <div class="body"><h3>${esc(g.title)}</h3><div class="meta"><span>${esc(g.category || "")}</span><span>${fmtDate(g.publish_at)}</span></div></div>
+      </a>`).join("");
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

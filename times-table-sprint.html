@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Times Table Sprint</title>
+<style>
+  :root { --bg:#13283d; --chalk:#eef3f7; --accent:#e5b52e; --ok:#3aa36a; --bad:#d4553f; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--chalk); font: 17px/1.4 system-ui, "Segoe UI", sans-serif; display: grid; place-items: center; padding: 16px; }
+  .box { width: 100%; max-width: 420px; display: grid; gap: 16px; text-align: center; }
+  .hud { display: flex; justify-content: space-between; font: 700 14px ui-monospace, Menlo, monospace; letter-spacing: .06em; }
+  .time { color: var(--accent); }
+  .sum { font: 800 clamp(48px, 14vw, 72px)/1 system-ui, sans-serif; letter-spacing: -.02em; padding: 18px 0; border-radius: 16px; background: rgba(255,255,255,.06); transition: background .15s; }
+  .sum.ok { background: rgba(58,163,106,.35); } .sum.bad { background: rgba(212,85,63,.35); }
+  .pad { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  button { font: 800 26px system-ui, sans-serif; border: 0; border-radius: 14px; padding: 18px 0; cursor: pointer; background: rgba(255,255,255,.1); color: var(--chalk); box-shadow: inset 0 0 0 2px rgba(255,255,255,.16); touch-action: manipulation; }
+  button:active { transform: scale(.97); }
+  button.primary { background: var(--accent); color: #1b1a10; font-size: 20px; box-shadow: none; padding: 16px; }
+  .big { font: 800 64px/1 system-ui, sans-serif; color: var(--accent); }
+  .muted { opacity: .75; font-size: 15px; }
+  .levels { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .levels button { font-size: 15px; padding: 10px 14px; }
+  .levels button[aria-pressed="true"] { background: var(--chalk); color: var(--bg); }
+</style>
+</head>
+<body>
+<div class="box" id="app"></div>
+<script>
+const app = document.getElementById("app");
+const LEVELS = { "Up to 5": 5, "Up to 10": 10, "Up to 12": 12 };
+let max = 10, score, wrong, left, timer, answer;
+const store = { get(k) { try { return +localStorage.getItem(k) || 0; } catch (e) { return 0; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+
+function menu() {
+  app.innerHTML = `<div class="muted" style="text-transform:uppercase;letter-spacing:.1em;font-weight:700">Math · 60 seconds</div>
+    <div class="big" style="font-size:42px">Times Table Sprint</div>
+    <div class="muted">Tap the right answer. A wrong tap costs 3 seconds.</div>
+    <div class="levels">${Object.keys(LEVELS).map(k => `<button type="button" aria-pressed="${LEVELS[k] === max}" data-m="${LEVELS[k]}">${k}</button>`).join("")}</div>
+    <button class="primary" type="button" id="go">Start</button>
+    <div class="muted">Best (up to ${max}): ${store.get("tts-" + max)}</div>`;
+  app.querySelectorAll(".levels button").forEach(b => b.onclick = () => { max = +b.dataset.m; menu(); });
+  document.getElementById("go").onclick = start;
+}
+
+function start() {
+  score = 0; wrong = 0; left = 60;
+  app.innerHTML = `<div class="hud"><span>Score <b id="s">0</b></span><span class="time" id="t">60s</span></div>
+    <div class="sum" id="sum"></div><div class="pad" id="pad"></div>`;
+  next();
+  timer = setInterval(() => { left--; tick(); }, 1000);
+}
+
+function tick() {
+  document.getElementById("t").textContent = Math.max(0, left) + "s";
+  if (left <= 0) end();
+}
+
+function next() {
+  const a = rnd(2, max), b = rnd(2, max);
+  answer = a * b;
+  const opts = new Set([answer]);
+  const near = [answer + a, answer - a, answer + b, answer - b, (a + 1) * (b + 1), answer + 1, answer - 1, answer + 10];
+  for (const n of near.sort(() => Math.random() - .5)) { if (opts.size >= 4) break; if (n > 0) opts.add(n); }
+  while (opts.size < 4) opts.add(rnd(4, max * max));
+  document.getElementById("sum").textContent = `${a} × ${b}`;
+  document.getElementById("pad").innerHTML = [...opts].sort(() => Math.random() - .5).map(n => `<button type="button">${n}</button>`).join("");
+  document.querySelectorAll("#pad button").forEach(btn => btn.onclick = () => tap(+btn.textContent));
+}
+
+function flash(cls) { const s = document.getElementById("sum"); s.className = "sum " + cls; setTimeout(() => s && (s.className = "sum"), 180); }
+
+function tap(n) {
+  if (left <= 0) return;
+  if (n === answer) { score++; document.getElementById("s").textContent = score; flash("ok"); next(); }
+  else { wrong++; left -= 3; flash("bad"); tick(); }
+}
+
+function end() {
+  clearInterval(timer);
+  const key = "tts-" + max, best = Math.max(store.get(key), score); store.set(key, best);
+  const acc = score + wrong ? Math.round(score / (score + wrong) * 100) : 0;
+  app.innerHTML = `<div class="muted" style="text-transform:uppercase;letter-spacing:.1em;font-weight:700">Time's up</div>
+    <div class="big">${score}</div><div>correct answers · ${acc}% accuracy</div>
+    <div class="muted">Best (up to ${max}): ${best}</div>
+    <button class="primary" type="button" id="again">Play again</button>
+    <button type="button" id="menu" style="font-size:16px;padding:12px">Change level</button>`;
+  document.getElementById("again").onclick = start;
+  document.getElementById("menu").onclick = menu;
+}
+
+menu();
+</script>
+</body>
+</html>

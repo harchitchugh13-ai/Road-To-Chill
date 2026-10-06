@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Capital Quest</title>
+<style>
+  :root { --bg:#1e3a31; --card:#f2efe4; --ink:#16241e; --accent:#e5b52e; --ok:#3aa36a; --bad:#d4553f; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--card); font: 17px/1.4 system-ui, "Segoe UI", sans-serif; display: grid; place-items: center; padding: 16px; }
+  .box { width: 100%; max-width: 460px; display: grid; gap: 14px; }
+  .top { display: flex; justify-content: space-between; font: 700 13px ui-monospace, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
+  .bar { height: 6px; border-radius: 6px; background: rgba(255,255,255,.12); overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); transition: width .3s; }
+  .q { background: var(--card); color: var(--ink); border-radius: 14px; padding: 22px; text-align: center; }
+  .q small { display: block; font-size: 13px; text-transform: uppercase; letter-spacing: .1em; opacity: .65; margin-bottom: 6px; }
+  .q b { font-size: clamp(26px, 7vw, 36px); line-height: 1.1; }
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  button { font: 700 17px system-ui, sans-serif; border: 0; border-radius: 12px; padding: 16px 10px; cursor: pointer; background: rgba(255,255,255,.1); color: var(--card); box-shadow: inset 0 0 0 2px rgba(255,255,255,.18); min-height: 58px; }
+  button:hover { background: rgba(255,255,255,.16); }
+  button.ok { background: var(--ok); box-shadow: none; }
+  button.bad { background: var(--bad); box-shadow: none; }
+  button.primary { background: var(--accent); color: var(--ink); box-shadow: none; }
+  .fact { min-height: 1.4em; text-align: center; font-size: 15px; opacity: .9; }
+  .end { text-align: center; display: grid; gap: 12px; }
+  .end .big { font: 800 64px/1 system-ui, sans-serif; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="box" id="app"></div>
+<script>
+const DATA = [
+  ["Andhra Pradesh","Amaravati"],["Arunachal Pradesh","Itanagar"],["Assam","Dispur"],["Bihar","Patna"],
+  ["Chhattisgarh","Raipur"],["Goa","Panaji"],["Gujarat","Gandhinagar"],["Haryana","Chandigarh"],
+  ["Himachal Pradesh","Shimla"],["Jharkhand","Ranchi"],["Karnataka","Bengaluru"],["Kerala","Thiruvananthapuram"],
+  ["Madhya Pradesh","Bhopal"],["Maharashtra","Mumbai"],["Manipur","Imphal"],["Meghalaya","Shillong"],
+  ["Mizoram","Aizawl"],["Nagaland","Kohima"],["Odisha","Bhubaneswar"],["Punjab","Chandigarh"],
+  ["Rajasthan","Jaipur"],["Sikkim","Gangtok"],["Tamil Nadu","Chennai"],["Telangana","Hyderabad"],
+  ["Tripura","Agartala"],["Uttar Pradesh","Lucknow"],["Uttarakhand","Dehradun"],["West Bengal","Kolkata"]
+];
+const CAPS = [...new Set(DATA.map(d => d[1]))];
+const ROUNDS = 10;
+const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const best = { get() { try { return +localStorage.getItem("cq-best") || 0; } catch (e) { return 0; } }, set(v) { try { localStorage.setItem("cq-best", v); } catch (e) {} } };
+const app = document.getElementById("app");
+let deck, round, score;
+
+function start() { deck = shuffle(DATA).slice(0, ROUNDS); round = 0; score = 0; ask(); }
+
+function ask() {
+  const [state, cap] = deck[round];
+  const opts = shuffle([cap, ...shuffle(CAPS.filter(c => c !== cap)).slice(0, 3)]);
+  app.innerHTML = `
+    <div class="top"><span>Round ${round + 1} / ${ROUNDS}</span><span>Score ${score}</span></div>
+    <div class="bar"><i style="width:${round / ROUNDS * 100}%"></i></div>
+    <div class="q"><small>What is the capital of</small><b>${state}</b></div>
+    <div class="opts">${opts.map(o => `<button type="button">${o}</button>`).join("")}</div>
+    <div class="fact" id="fact"></div>`;
+  app.querySelectorAll(".opts button").forEach(b => b.onclick = () => pick(b, cap));
+}
+
+function pick(btn, cap) {
+  app.querySelectorAll(".opts button").forEach(b => { b.disabled = true; if (b.textContent === cap) b.classList.add("ok"); });
+  if (btn.textContent === cap) { score++; document.getElementById("fact").textContent = "Correct!"; }
+  else { btn.classList.add("bad"); document.getElementById("fact").textContent = `It's ${cap}.`; }
+  setTimeout(() => (++round < ROUNDS ? ask() : finish()), 1100);
+}
+
+function finish() {
+  const b = Math.max(best.get(), score); best.set(b);
+  const line = score === 10 ? "Perfect map! You know India by heart." : score >= 7 ? "Great work. A couple more rounds and you'll have them all." : "Good start. Play again: the states repeat, so you'll learn fast.";
+  app.innerHTML = `<div class="end"><div class="top" style="justify-content:center">Final score</div>
+    <div class="big">${score}/${ROUNDS}</div><div>${line}</div><div style="opacity:.75">Best: ${b}/${ROUNDS}</div>
+    <button class="primary" type="button" id="again">Play again</button></div>`;
+  document.getElementById("again").onclick = start;
+}
+
+app.innerHTML = `<div class="end"><div class="top" style="justify-content:center">Geography · India</div>
+  <div class="big" style="font-size:44px">Capital Quest</div>
+  <div>Pick the capital of each state. ${ROUNDS} rounds.</div>
+  <button class="primary" type="button" id="go">Start</button></div>`;
+document.getElementById("go").onclick = start;
+</script>
+</body>
+</html>
